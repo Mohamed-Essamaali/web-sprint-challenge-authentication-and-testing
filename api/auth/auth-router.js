@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
 const Users = require('./auth-model')
 
 
@@ -75,8 +76,8 @@ router.post('/register', async (req, res,next) => {
   catch(err){next(err)}
 });
 
-router.post('/login', (req, res) => {
-  res.end('implement login, please!');
+router.post('/login', async (req, res,next) => {
+  // res.end('implement login, please!');
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -100,6 +101,52 @@ router.post('/login', (req, res) => {
     4- On FAILED login due to `username` not existing in the db, or `password` being incorrect,
       the response body should include a string exactly as follows: "invalid credentials".
   */
+ try{
+  const {username,password} = req.body 
+  
+  if(!username || !password){
+    return res.status(409).json({message: "username and password required"})
+  }
+
+  const user = await Users.findBy({username}).first()
+  // verify if the user exist based on username
+  if(!user){
+    return res.status(401).json({message: "invalid credentials"})
+  }
+  const validPassword = await bcrypt.compare(password,user.password)
+  // verify if the password valid
+  if(!validPassword){
+    return res.status(401).json({message: "invalid credentials"})
+  }
+
+  // generate and sign new json web token with some user details
+
+  const token = jwt.sign({
+    userId: user.id,
+  },"terces ti peek, efas ti peek")
+
+  // tell client to save token in its cookie jar
+  res.cookie('token',token)
+
+  res.status(201).json({message: `Welcome ${user.username}!`, 
+  token: token})
+
+}
+catch(err){next(err)}
 });
+
+router.get('/logout', async (req,res,next)=>{
+
+  try{
+    req.session.destroy((err)=>{
+      if(err){
+        next(err)
+      } else{
+        res.status(204).end()
+      }
+    })
+  }
+  catch(err){next(err)}
+})
 
 module.exports = router;
