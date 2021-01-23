@@ -123,7 +123,7 @@ router.post('/login', async (req, res,next) => {
 
   const token = jwt.sign({
     userId: user.id,
-  },"terces ti peek, efas ti peek")
+  },process.env.JWT_SECRET)
 
   // tell client to save token in its cookie jar
   res.cookie('token',token)
